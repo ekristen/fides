@@ -1,10 +1,10 @@
 release:
   github:
     owner: ekristen
-    name: go-project-template
+    name: fides
   prerelease: auto
 builds:
-  - id: go-project-template
+  - id: fides
     goos:
       - linux
       - darwin
@@ -19,24 +19,24 @@ builds:
       - -X '{{ .ModulePath }}/pkg/common.VERSION={{ .Tag }}'
       - -X '{{ .ModulePath }}/pkg/common.COMMIT={{ .Commit }}'
 archives:
-  - id: go-project-template
+  - id: fides
     builds:
-      - go-project-template
+      - fides
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}{{ .Arm }}"
     format_overrides:
       - goos: windows
         format: zip
 dockers:
-  - id: go-project-template
+  - id: fides
     ids:
-      - go-project-template
+      - fides
     use: buildx
     goos: linux
     goarch: amd64
     dockerfile: Dockerfile
     image_templates:
-      - ghcr.io/ekristen/go-project-template:v{{ .Version }}
-      - ghcr.io/ekristen/go-project-template:{{ replace .Branch "/" "-" }}-{{ .ShortCommit }}-{{ .Timestamp }}
+      - ghcr.io/ekristen/fides:v{{ .Version }}
+      - ghcr.io/ekristen/fides:{{ replace .Branch "/" "-" }}-{{ .ShortCommit }}-{{ .Timestamp }}
     build_flag_templates:
       - "--target=goreleaser"
       - "--pull"
@@ -51,23 +51,11 @@ signs:
     stdin: "{{ .Env.COSIGN_PASSWORD }}"
     args: ["sign-blob", "--yes", "--tlog-upload=false", "--key=cosign.key", "--output-signature=${signature}", "${artifact}"]
     artifacts: all
-  #- ids:
-  #    - template
-  #  cmd: cosign
-  #  signature: "${artifact}.sig"
-  #  certificate: "${artifact}.pem"
-  #  args: ["sign-blob", "--yes", "--oidc-issuer=https://token.actions.githubusercontent.com", "--output-certificate=${certificate}", "--output-signature=${signature}", "${artifact}"]
-  #  artifacts: all
 docker_signs:
   - ids: # Sign With Password
-      - go-project-template
+      - fides
     artifacts: all
     stdin: "{{ .Env.COSIGN_PASSWORD }}"
-  #- ids:
-  #    - template
-  #  artifacts: all
-  #  cmd: cosign
-  #  args: ["sign", "--yes", "--oidc-issuer=https://token.actions.githubusercontent.com", "--output-certificate=${certificate}", "--output-signature=${signature}", "${artifact}"]
 checksum:
   name_template: "checksums.txt"
 snapshot:

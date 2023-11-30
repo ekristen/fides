@@ -1,16 +1,16 @@
 package common
 
 // NAME of the App
-var NAME = "go-project-template"
+var NAME = "fides"
 
 // SUMMARY of the Version
-var SUMMARY = "v1.0.0"
+var SUMMARY = "v0.1.0"
 
 // BRANCH of the Version
 var BRANCH = "dev"
 
 // VERSION of Release
-var VERSION = "1.0.0"
+var VERSION = "0.1.0"
 
 var COMMIT = "dirty"
 
