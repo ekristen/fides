@@ -7,13 +7,12 @@ builds:
   - id: fides
     goos:
       - linux
-      - darwin
-      - windows
     goarch:
       - amd64
     ldflags:
       - -s
       - -w
+      - -extldflags=-static
       - -X '{{ .ModulePath }}/pkg/common.SUMMARY=v{{ .Version }}'
       - -X '{{ .ModulePath }}/pkg/common.BRANCH={{ .Branch }}'
       - -X '{{ .ModulePath }}/pkg/common.VERSION={{ .Tag }}'
