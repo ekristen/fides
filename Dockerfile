@@ -13,6 +13,8 @@ RUN \
   go build -o bin/fides main.go
 
 FROM base AS goreleaser
+ENTRYPOINT ["/usr/local/bin/fides"]
+CMD ["controller"]
 COPY fides /usr/local/bin/fides
 USER fides
 

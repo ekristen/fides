@@ -4,11 +4,13 @@ import (
 	"os"
 	"path"
 
-	"github.com/rancher/wrangler/pkg/signals"
+	"github.com/rancher/wrangler/v2/pkg/signals"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ekristen/fides/pkg/common"
+
+	_ "github.com/ekristen/fides/pkg/commands/controllers"
 )
 
 func main() {

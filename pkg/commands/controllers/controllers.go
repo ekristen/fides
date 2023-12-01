@@ -32,18 +32,21 @@ func Execute(c *cli.Context) error {
 func init() {
 	flags := []cli.Flag{
 		&cli.BoolFlag{
-			Name:  "agree-tos",
-			Usage: "Agree to the Terms of Service https://fides.ekristen.dev/terms, by using this option you agree.",
+			Name:    "agree-tos",
+			Usage:   "Agree to the Terms of Service https://fides.ekristen.dev/terms, by using this option you agree.",
+			EnvVars: []string{"FIDES_AGREE_TOS"},
 		},
 		&cli.StringFlag{
-			Name:  "namespace",
-			Usage: "namespace for fides",
-			Value: "fides-system",
+			Name:    "namespace",
+			Usage:   "namespace for fides",
+			Value:   "fides-system",
+			EnvVars: []string{"FIDES_NAMESPACE"},
 		},
 		&cli.StringFlag{
-			Name:  "secret-name",
-			Usage: "custom name for the fides secret",
-			Value: "fides",
+			Name:    "secret-name",
+			Usage:   "custom name for the fides secret",
+			Value:   "fides",
+			EnvVars: []string{"FIDES_SECRET_NAME"},
 		},
 		&cli.StringFlag{
 			Name:  "metrics-port",
@@ -55,9 +58,10 @@ func init() {
 			Hidden: true,
 		},
 		&cli.StringFlag{
-			Name:   "base-url",
-			Value:  "https://fides.ekristen.dev",
-			Hidden: true,
+			Name:    "base-url",
+			Value:   "https://fides.ekristen.dev",
+			Hidden:  true,
+			EnvVars: []string{"FIDES_BASE_URL"},
 		},
 		&cli.StringFlag{
 			Name:    "cluster-key",
