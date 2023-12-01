@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/rancher/wrangler v1.1.1
+	github.com/rancher/wrangler/v2 v2.1.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli/v2 v2.25.7
