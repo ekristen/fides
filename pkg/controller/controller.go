@@ -157,7 +157,9 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 
 	if newCluster {
 		// register the cluster
-		return registerCluster(ctx, kube, config, uid, clusterName, wellKnown, jwks)
+		if err := registerCluster(ctx, kube, config, uid, clusterName, wellKnown, jwks); err != nil {
+			return err
+		}
 	}
 
 	// update the cluster
