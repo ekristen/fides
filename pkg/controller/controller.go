@@ -108,9 +108,11 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 	clusterID := string(secret.Data["cluster-id"])
 	clusterName := string(secret.Data["cluster-name"])
 
-	if clusterID != "" && clusterKey == "" && clusterName != "" {
+	if clusterKey == "quickstart" {
 		newCluster = true
 	}
+
+	logrus.Infof("is cluster new: %t", newCluster)
 
 	if !newCluster {
 		if config.ClusterKey == "" || config.ClusterKey != clusterKey {
