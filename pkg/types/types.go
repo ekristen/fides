@@ -3,6 +3,7 @@ package types
 type ClusterPutRequest struct {
 	ID        string              `path:"id"`
 	UID       string              `json:"uid"`
+	KubeUID   string              `json:"kube_uid"`
 	JWKS      JWKS                `json:"jwks"`
 	OIDConfig OpenIDConfiguration `json:"oid_config"`
 }
@@ -51,6 +52,7 @@ type Response struct {
 type ClusterNewRequest struct {
 	Name      string              `json:"name"`
 	UID       string              `json:"uid"`
+	KubeUID   string              `json:"kube_uid"`
 	JWKS      JWKS                `json:"jwks"`
 	OIDConfig OpenIDConfiguration `json:"oid_config"`
 }

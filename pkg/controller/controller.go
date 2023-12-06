@@ -71,17 +71,19 @@ func sync(ctx context.Context, kube *kubernetes.Clientset, config *Config) error
 		return err
 	}
 
+	kubeUID := ks.GetUID()
+
 	firstTicker := time.NewTicker(1 * time.Second)
 	ticker := time.NewTicker(15 * time.Minute)
 	for {
 		select {
 		case <-firstTicker.C:
-			if err := doSync(ctx, kube, config, ks.GetUID()); err != nil {
+			if err := doSync(ctx, kube, config, kubeUID); err != nil {
 				logrus.WithError(err).Error("unable to perform sync")
 			}
 			firstTicker.Stop()
 		case <-ticker.C:
-			if err := doSync(ctx, kube, config, ks.GetUID()); err != nil {
+			if err := doSync(ctx, kube, config, kubeUID); err != nil {
 				logrus.WithError(err).Error("unable to perform sync")
 			}
 		case <-ctx.Done():
@@ -90,7 +92,7 @@ func sync(ctx context.Context, kube *kubernetes.Clientset, config *Config) error
 	}
 }
 
-func doSync(ctx context.Context, kube *kubernetes.Clientset, config *Config, uid apitypes.UID) error {
+func doSync(ctx context.Context, kube *kubernetes.Clientset, config *Config, kubeUID apitypes.UID) error {
 	logrus.Info("running doSync")
 
 	// 1. check the secret for cluster-id/cluster-key
@@ -157,23 +159,23 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config *Config, uid
 
 	if newCluster {
 		// register the cluster
-		if err := registerCluster(ctx, kube, config, uid, clusterName, wellKnown, jwks); err != nil {
+		if err := registerCluster(ctx, kube, config, kubeUID, wellKnown, jwks); err != nil {
 			return err
 		}
 	}
 
 	// update the cluster
-	return updateCluster(ctx, kube, config, uid, wellKnown, jwks)
+	return updateCluster(ctx, kube, config, kubeUID, wellKnown, jwks)
 }
 
-func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config *Config, uid apitypes.UID, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
+func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config *Config, kubeUID apitypes.UID, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
 	logrus.Info("updating cluster")
 
 	ctx, cancel := context.WithDeadlineCause(ctx, time.Now().Add(30*time.Second), fmt.Errorf("register cluster"))
 	defer cancel()
 
 	reg := types.ClusterPutRequest{
-		UID:       string(uid),
+		KubeUID:   string(kubeUID),
 		OIDConfig: wellKnown,
 		JWKS:      jwks,
 	}
@@ -226,15 +228,16 @@ func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config *Conf
 	return nil
 }
 
-func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config *Config, uid apitypes.UID, clusterName string, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
+func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config *Config, kubeUID apitypes.UID, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
 	logrus.Info("registering cluster")
 
 	ctx, cancel := context.WithDeadlineCause(ctx, time.Now().Add(30*time.Second), fmt.Errorf("register cluster"))
 	defer cancel()
 
 	regInput := types.ClusterNewRequest{
-		Name:      clusterName,
-		UID:       string(uid),
+		Name:      config.ClusterName,
+		UID:       config.ClusterID,
+		KubeUID:   string(kubeUID),
 		OIDConfig: wellKnown,
 		JWKS:      jwks,
 	}
