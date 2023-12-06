@@ -47,3 +47,17 @@ type Response struct {
 
 	Metadata *MetadataResponse `json:"metadata,omitempty"`
 }
+
+type ClusterNewRequest struct {
+	Name      string              `json:"name"`
+	UID       string              `json:"uid"`
+	JWKS      JWKS                `json:"jwks"`
+	OIDConfig OpenIDConfiguration `json:"oid_config"`
+}
+
+type ClusterNewResponse struct {
+	Token string `json:"token"`
+	UID   string `json:"uid"`
+	URL   string `json:"url"`
+	Name  string `json:"name"`
+}

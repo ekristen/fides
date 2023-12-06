@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.6-labs
 
-FROM debian:bullseye-slim as base
+FROM debian:bookworm-slim as base
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN useradd -r -u 999 -d /home/fides fides
 

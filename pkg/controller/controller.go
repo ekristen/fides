@@ -5,19 +5,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/rancher/wrangler/v2/pkg/kubeconfig"
-	"github.com/rancher/wrangler/v2/pkg/leader"
-	"github.com/sirupsen/logrus"
+	"github.com/ekristen/fides/pkg/common"
 	"io"
-	"io/ioutil"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	apitypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 	"net/http"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	apitypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+
+	"github.com/rancher/wrangler/v2/pkg/kubeconfig"
+	"github.com/rancher/wrangler/v2/pkg/leader"
+	"github.com/sirupsen/logrus"
+
 	"github.com/ekristen/fides/pkg/types"
 )
+
+var UserAgent = fmt.Sprintf("fides/%s", common.AppVersion.Summary)
 
 type Config struct {
 	KubeConfigPath string
@@ -66,7 +72,7 @@ func sync(ctx context.Context, kube *kubernetes.Clientset, config Config) error 
 	}
 
 	firstTicker := time.NewTicker(1 * time.Second)
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(15 * time.Minute)
 	for {
 		select {
 		case <-firstTicker.C:
@@ -87,17 +93,37 @@ func sync(ctx context.Context, kube *kubernetes.Clientset, config Config) error 
 func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid apitypes.UID) error {
 	logrus.Info("running doSync")
 
+	// 1. check the secret for cluster-id/cluster-key
+	// 2. if it does not exist, register the cluster
+	// 3. else update the cluster
+	newCluster := false
+	secret, err := kube.CoreV1().Secrets(config.Namespace).Get(ctx, config.SecretName, v1.GetOptions{})
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+
+		newCluster = true
+	}
+
+	if config.ClusterKey == "" || config.ClusterKey != string(secret.Data["cluster-key"]) {
+		config.ClusterKey = string(secret.Data["cluster-key"])
+	}
+	if config.ClusterID == "" || config.ClusterID != string(secret.Data["cluster-id"]) {
+		config.ClusterID = string(secret.Data["cluster-id"])
+	}
+
 	resConfig := kube.RESTClient().Get().AbsPath("/.well-known/openid-configuration").Do(ctx)
 	configData, err := resConfig.Raw()
 	if err != nil {
-		logrus.WithError(err).Fatal("unable to retrieve raw data")
+		logrus.WithError(err).Fatal("unable to retrieve openid configuration")
 		return err
 	}
 
 	resJWKs := kube.RESTClient().Get().AbsPath("/openid/v1/jwks").Do(ctx)
 	jwkData, err := resJWKs.Raw()
 	if err != nil {
-		logrus.WithError(err).Fatal("unable to retrieve raw data")
+		logrus.WithError(err).Fatal("unable to retrieve jwks")
 		return err
 	}
 
@@ -111,6 +137,16 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 		return err
 	}
 
+	if newCluster {
+		// register the cluster
+		return registerCluster(ctx, kube, config, uid, wellKnown, jwks)
+	}
+
+	// update the cluster
+	return updateCluster(ctx, kube, config, uid, wellKnown, jwks)
+}
+
+func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config Config, uid apitypes.UID, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
 	reg := types.ClusterPutRequest{
 		UID:       string(uid),
 		OIDConfig: wellKnown,
@@ -126,6 +162,8 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 	if err != nil {
 		return err
 	}
+
+	req.Header.Add("User-Agent", UserAgent)
 
 	if config.ClusterKey != "" {
 		// existing cluster token to http request
@@ -147,10 +185,11 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 		}
 	}(res.Body)
 
-	if res.StatusCode == 200 {
+	switch res.StatusCode {
+	case 200:
 		logrus.Info("cluster updated successfully")
-	} else {
-		data, err := ioutil.ReadAll(res.Body)
+	default:
+		data, err := io.ReadAll(res.Body)
 		if err != nil {
 			logrus.WithError(err).Error("unable to read body")
 			return err
@@ -163,6 +202,79 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 		}
 
 		logrus.WithError(fmt.Errorf(resp.Error)).Error("an error occurred updating the cluster information")
+	}
+
+	return nil
+}
+
+func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config Config, uid apitypes.UID, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
+	logrus.Info("registering cluster")
+
+	regInput := types.ClusterNewRequest{
+		UID:       string(uid),
+		OIDConfig: wellKnown,
+		JWKS:      jwks,
+	}
+	b := new(bytes.Buffer)
+	if err := json.NewEncoder(b).Encode(regInput); err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/v1/clusters", config.BaseURL), b)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("User-Agent", UserAgent)
+	req.Header.Add("x-fides-quickstart", "true")
+
+	client := http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			logrus.WithError(err).Error("unable to close body")
+		}
+	}(res.Body)
+
+	switch res.StatusCode {
+	case 201:
+		logrus.Info("cluster updated successfully")
+		d, err := io.ReadAll(res.Body)
+		if err != nil {
+			logrus.WithError(err).Error("unable to read body")
+			return err
+		}
+		var resp types.ClusterNewResponse
+		if err := json.Unmarshal(d, &resp); err != nil {
+			logrus.WithError(err).Error("unable to parse response")
+			return err
+		}
+
+		secret, err := kube.CoreV1().Secrets(config.Namespace).Create(ctx, &corev1.Secret{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      config.SecretName,
+				Namespace: config.Namespace,
+			},
+			StringData: map[string]string{
+				"cluster-id":   resp.UID,
+				"cluster-key":  resp.Token,
+				"cluster-name": resp.Name,
+			},
+		}, v1.CreateOptions{})
+		if err != nil {
+			return err
+		}
+		_ = secret
+	case 409:
+		logrus.Error("cluster already exists")
+		return fmt.Errorf("cluster already exists")
 	}
 
 	return nil
