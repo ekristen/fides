@@ -152,7 +152,7 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 
 	if newCluster {
 		// register the cluster
-		return registerCluster(ctx, kube, config, uid, wellKnown, jwks)
+		return registerCluster(ctx, kube, config, uid, clusterName, wellKnown, jwks)
 	}
 
 	// update the cluster
@@ -225,13 +225,14 @@ func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config Confi
 	return nil
 }
 
-func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config Config, uid apitypes.UID, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
+func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config Config, uid apitypes.UID, clusterName string, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
 	logrus.Info("registering cluster")
 
 	ctx, cancel := context.WithDeadlineCause(ctx, time.Now().Add(30*time.Second), fmt.Errorf("register cluster"))
 	defer cancel()
 
 	regInput := types.ClusterNewRequest{
+		Name:      clusterName,
 		UID:       string(uid),
 		OIDConfig: wellKnown,
 		JWKS:      jwks,
