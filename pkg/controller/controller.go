@@ -266,7 +266,7 @@ func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config Con
 
 	switch res.StatusCode {
 	case 201:
-		logrus.Info("cluster updated successfully")
+		logrus.Info("cluster registered successfully")
 		d, err := io.ReadAll(res.Body)
 		if err != nil {
 			logrus.WithError(err).Error("unable to read body")
@@ -278,7 +278,7 @@ func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config Con
 			return err
 		}
 
-		secret, err := kube.CoreV1().Secrets(config.Namespace).Create(ctx, &corev1.Secret{
+		secret, err := kube.CoreV1().Secrets(config.Namespace).Update(ctx, &corev1.Secret{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      config.SecretName,
 				Namespace: config.Namespace,
@@ -288,7 +288,7 @@ func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config Con
 				"cluster-key":  resp.Token,
 				"cluster-name": resp.Name,
 			},
-		}, v1.CreateOptions{})
+		}, v1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
