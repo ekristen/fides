@@ -15,7 +15,7 @@ func Execute(c *cli.Context) error {
 
 	// TODO: check for cluster values
 
-	cfg := oidc.Config{
+	cfg := &oidc.Config{
 		KubeConfigPath: c.String("kubeconfig"),
 		Namespace:      c.String("namespace"),
 		Lockname:       c.String("lockname"),
@@ -73,7 +73,7 @@ func init() {
 		},
 		&cli.StringFlag{
 			Name:    "cluster-id",
-			EnvVars: []string{"FIDES_CLUSTER_ID"},
+			EnvVars: []string{"FIDES_CLUSTER_ID", "FIDES_CLUSTER_UID"},
 		},
 	}
 

@@ -36,7 +36,7 @@ type Config struct {
 	ClusterID      string
 }
 
-func NewController(ctx context.Context, config Config) error {
+func NewController(ctx context.Context, config *Config) error {
 	cfg, err := kubeconfig.GetNonInteractiveClientConfig(config.KubeConfigPath).ClientConfig()
 	if err != nil {
 		return err
@@ -63,7 +63,7 @@ func NewController(ctx context.Context, config Config) error {
 	return nil
 }
 
-func sync(ctx context.Context, kube *kubernetes.Clientset, config Config) error {
+func sync(ctx context.Context, kube *kubernetes.Clientset, config *Config) error {
 	logrus.Info("sync called")
 
 	ks, err := kube.CoreV1().Namespaces().Get(ctx, "kube-system", v1.GetOptions{})
@@ -90,7 +90,7 @@ func sync(ctx context.Context, kube *kubernetes.Clientset, config Config) error 
 	}
 }
 
-func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid apitypes.UID) error {
+func doSync(ctx context.Context, kube *kubernetes.Clientset, config *Config, uid apitypes.UID) error {
 	logrus.Info("running doSync")
 
 	// 1. check the secret for cluster-id/cluster-key
@@ -105,7 +105,7 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 	}
 
 	clusterKey := string(secret.Data["cluster-key"])
-	clusterID := string(secret.Data["cluster-id"])
+	clusterID := string(secret.Data["cluster-uid"])
 	clusterName := string(secret.Data["cluster-name"])
 
 	if clusterKey == "quickstart" {
@@ -127,7 +127,7 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 	}
 
 	logrus.WithFields(logrus.Fields{
-		"cluster-id":   config.ClusterID,
+		"cluster-uid":  config.ClusterID,
 		"cluster-name": config.ClusterName,
 	}).Info("cluster information")
 
@@ -166,7 +166,7 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 	return updateCluster(ctx, kube, config, uid, wellKnown, jwks)
 }
 
-func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config Config, uid apitypes.UID, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
+func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config *Config, uid apitypes.UID, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
 	logrus.Info("updating cluster")
 
 	ctx, cancel := context.WithDeadlineCause(ctx, time.Now().Add(30*time.Second), fmt.Errorf("register cluster"))
@@ -226,7 +226,7 @@ func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config Confi
 	return nil
 }
 
-func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config Config, uid apitypes.UID, clusterName string, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
+func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config *Config, uid apitypes.UID, clusterName string, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
 	logrus.Info("registering cluster")
 
 	ctx, cancel := context.WithDeadlineCause(ctx, time.Now().Add(30*time.Second), fmt.Errorf("register cluster"))
@@ -286,7 +286,7 @@ func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config Con
 				Namespace: config.Namespace,
 			},
 			StringData: map[string]string{
-				"cluster-id":   resp.UID,
+				"cluster-uid":  resp.UID,
 				"cluster-key":  resp.Token,
 				"cluster-name": resp.Name,
 			},
