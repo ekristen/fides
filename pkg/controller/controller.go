@@ -160,6 +160,11 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 }
 
 func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config Config, uid apitypes.UID, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
+	logrus.Info("updating cluster")
+
+	ctx, cancel := context.WithDeadlineCause(ctx, time.Now().Add(30*time.Second), fmt.Errorf("register cluster"))
+	defer cancel()
+
 	reg := types.ClusterPutRequest{
 		UID:       string(uid),
 		OIDConfig: wellKnown,
@@ -171,7 +176,7 @@ func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config Confi
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/api/v1/clusters/%s", config.BaseURL, config.ClusterID), b)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, fmt.Sprintf("%s/api/v1/clusters/%s", config.BaseURL, config.ClusterID), b)
 	if err != nil {
 		return err
 	}
@@ -223,6 +228,9 @@ func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config Confi
 func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config Config, uid apitypes.UID, wellKnown types.OpenIDConfiguration, jwks types.JWKS) error {
 	logrus.Info("registering cluster")
 
+	ctx, cancel := context.WithDeadlineCause(ctx, time.Now().Add(30*time.Second), fmt.Errorf("register cluster"))
+	defer cancel()
+
 	regInput := types.ClusterNewRequest{
 		UID:       string(uid),
 		OIDConfig: wellKnown,
@@ -233,7 +241,7 @@ func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config Con
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/v1/clusters", config.BaseURL), b)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/api/v1/clusters", config.BaseURL), b)
 	if err != nil {
 		return err
 	}
