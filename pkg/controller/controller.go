@@ -126,6 +126,11 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 		}
 	}
 
+	logrus.WithFields(logrus.Fields{
+		"cluster-id":   config.ClusterID,
+		"cluster-name": config.ClusterName,
+	}).Info("cluster information")
+
 	resConfig := kube.RESTClient().Get().AbsPath("/.well-known/openid-configuration").Do(ctx)
 	configData, err := resConfig.Raw()
 	if err != nil {
