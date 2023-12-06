@@ -108,7 +108,7 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 	clusterID := string(secret.Data["cluster-id"])
 	clusterName := string(secret.Data["cluster-name"])
 
-	if clusterID != "" && clusterKey == "" && clusterName == "" {
+	if clusterID != "" && clusterKey == "" && clusterName != "" {
 		newCluster = true
 	}
 
