@@ -218,13 +218,7 @@ func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config Confi
 			return err
 		}
 
-		var resp types.Response
-		if err := json.Unmarshal(data, &resp); err != nil {
-			logrus.WithError(err).Error("unable to parse response")
-			return err
-		}
-
-		logrus.WithError(fmt.Errorf(resp.Error)).Error("an error occurred updating the cluster information")
+		logrus.WithField("data", string(data)).WithField("status", res.StatusCode).Error("unknown status code")
 	}
 
 	return nil
@@ -302,6 +296,13 @@ func registerCluster(ctx context.Context, kube *kubernetes.Clientset, config Con
 	case 409:
 		logrus.Error("cluster already exists")
 		return fmt.Errorf("cluster already exists")
+	default:
+		data, err := io.ReadAll(res.Body)
+		if err != nil {
+			logrus.WithError(err).Error("unable to read body")
+			return err
+		}
+		logrus.WithField("data", string(data)).WithField("status", res.StatusCode).Error("unknown status code")
 	}
 
 	return nil
