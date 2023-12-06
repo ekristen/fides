@@ -102,15 +102,26 @@ func doSync(ctx context.Context, kube *kubernetes.Clientset, config Config, uid 
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
+	}
 
+	clusterKey := string(secret.Data["cluster-key"])
+	clusterID := string(secret.Data["cluster-id"])
+	clusterName := string(secret.Data["cluster-name"])
+
+	if clusterID != "" && clusterKey == "" && clusterName == "" {
 		newCluster = true
 	}
 
-	if config.ClusterKey == "" || config.ClusterKey != string(secret.Data["cluster-key"]) {
-		config.ClusterKey = string(secret.Data["cluster-key"])
-	}
-	if config.ClusterID == "" || config.ClusterID != string(secret.Data["cluster-id"]) {
-		config.ClusterID = string(secret.Data["cluster-id"])
+	if !newCluster {
+		if config.ClusterKey == "" || config.ClusterKey != clusterKey {
+			config.ClusterKey = clusterKey
+		}
+		if config.ClusterID == "" || config.ClusterID != clusterID {
+			config.ClusterID = clusterID
+		}
+		if config.ClusterName == "" || config.ClusterName != clusterName {
+			config.ClusterName = clusterName
+		}
 	}
 
 	resConfig := kube.RESTClient().Get().AbsPath("/.well-known/openid-configuration").Do(ctx)
