@@ -3,8 +3,14 @@ package types
 type ClusterPutRequest struct {
 	ID        string              `path:"id"`
 	UID       string              `json:"uid"`
+	KubeUID   string              `json:"kube_uid"`
 	JWKS      JWKS                `json:"jwks"`
 	OIDConfig OpenIDConfiguration `json:"oid_config"`
+}
+
+type ClusterPutResponse struct {
+	Error    string `json:"error,omitempty"`
+	Verified bool   `json:"verified,omitempty"`
 }
 
 type OpenIDConfiguration struct {
@@ -46,4 +52,19 @@ type Response struct {
 	DataResponse
 
 	Metadata *MetadataResponse `json:"metadata,omitempty"`
+}
+
+type ClusterNewRequest struct {
+	Name      string              `json:"name"`
+	UID       string              `json:"uid"`
+	KubeUID   string              `json:"kube_uid"`
+	JWKS      JWKS                `json:"jwks"`
+	OIDConfig OpenIDConfiguration `json:"oid_config"`
+}
+
+type ClusterNewResponse struct {
+	Token string `json:"token"`
+	UID   string `json:"uid"`
+	URL   string `json:"url"`
+	Name  string `json:"name"`
 }
