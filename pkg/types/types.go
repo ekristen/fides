@@ -8,6 +8,11 @@ type ClusterPutRequest struct {
 	OIDConfig OpenIDConfiguration `json:"oid_config"`
 }
 
+type ClusterPutResponse struct {
+	Error    string `json:"error,omitempty"`
+	Verified bool   `json:"verified,omitempty"`
+}
+
 type OpenIDConfiguration struct {
 	Issuer                           string   `json:"issuer"`
 	JwksUri                          string   `json:"jwks_uri"`

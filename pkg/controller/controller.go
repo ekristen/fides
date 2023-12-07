@@ -212,16 +212,29 @@ func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config *Conf
 		}
 	}(res.Body)
 
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		logrus.WithError(err).Error("unable to read body")
+		return err
+	}
+
 	switch res.StatusCode {
 	case 200:
 		logrus.Info("cluster updated successfully")
-	default:
-		data, err := io.ReadAll(res.Body)
-		if err != nil {
-			logrus.WithError(err).Error("unable to read body")
+		var res types.ClusterPutResponse
+		if err := json.Unmarshal(data, &res); err != nil {
+			logrus.WithError(err).Error("unable to parse response")
 			return err
 		}
 
+		if res.Verified == false {
+			logrus.Warn("cluster is not verified")
+			logrus.Warn("to verify your cluster you need to update your cluster configuration")
+			logrus.Warn("please add the following arguments to your kube-apiserver")
+			logrus.Warn("--service-account-issuer=https://oidc.fides.ekristen.dev/c/%s", config.ClusterID)
+			logrus.Warn("--service-account-jwks-uri=https://oidc.fides.ekristen.dev/c/%s/jwks", config.ClusterID)
+		}
+	default:
 		logrus.WithField("data", string(data)).WithField("status", res.StatusCode).Error("unknown status code")
 	}
 
