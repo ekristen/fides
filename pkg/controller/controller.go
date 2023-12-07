@@ -231,8 +231,8 @@ func updateCluster(ctx context.Context, kube *kubernetes.Clientset, config *Conf
 			logrus.Warn("cluster is not verified")
 			logrus.Warn("to verify your cluster you need to update your cluster configuration")
 			logrus.Warn("please add the following arguments to your kube-apiserver")
-			logrus.Warn("--service-account-issuer=https://oidc.fides.ekristen.dev/c/%s", config.ClusterID)
-			logrus.Warn("--service-account-jwks-uri=https://oidc.fides.ekristen.dev/c/%s/jwks", config.ClusterID)
+			logrus.Warnf("--service-account-issuer=https://oidc.fides.ekristen.dev/c/%s", config.ClusterID)
+			logrus.Warnf("--service-account-jwks-uri=https://oidc.fides.ekristen.dev/c/%s/jwks", config.ClusterID)
 		}
 	default:
 		logrus.WithField("data", string(data)).WithField("status", res.StatusCode).Error("unknown status code")
