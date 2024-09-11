@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.6-labs
+# syntax=docker/dockerfile:1.10-labs
 
 FROM debian:bookworm-slim as base
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
